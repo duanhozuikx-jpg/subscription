@@ -134,7 +134,7 @@ export default {
           // 使用现有的第一个作为模板，或者使用默认模板
           const firstProvider = Object.values(configData.providers)[0] || {
             type: 'http',
-            'health-check': { enable: true, url: 'https://cp.cloudflare.com', interval: 3600 }
+            'health-check': { enable: true, url: 'https://www.gstatic.com/generate_204', interval: 3600 }
           };
 
           configData.providers[name] = { ...firstProvider, url: proxyUrl };
