@@ -11,7 +11,13 @@ export function getAdminPassword(env: Env): string {
   return env.ADMIN_PASSWORD || env.INIT_PASSWORD || 'admin';
 }
 
+export function isDefaultCredential(env: Env): boolean {
+  return getAdminUser(env) === 'admin' && getAdminPassword(env) === 'admin';
+}
+
 export async function isAuthenticated(request: Request, env: Env): Promise<boolean> {
+  if (isDefaultCredential(env)) return false;
+
   const auth = request.headers.get('Authorization');
   if (auth?.startsWith('Basic ')) {
     const decoded = atob(auth.slice(6));
@@ -33,6 +39,7 @@ export async function createSession(env: Env): Promise<string> {
 export async function requireAuth(request: Request, env: Env): Promise<Response | null> {
   if (await isAuthenticated(request, env)) return null;
   if (new URL(request.url).pathname.startsWith('/api/')) return jsonResponse({ error: 'Unauthorized' }, 401);
+  if (isDefaultCredential(env)) return renderLogin('默认 admin/admin 已禁用，请到 Cloudflare 控制台或 Wrangler 设置 ADMIN_PASSWORD 后再登录');
   return renderLogin();
 }
 

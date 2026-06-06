@@ -1,5 +1,5 @@
 import { SESSION_TTL_SECONDS } from './defaults';
-import { createSession, getAdminPassword, getAdminUser, requireAuth } from './auth';
+import { createSession, getAdminPassword, getAdminUser, isDefaultCredential, requireAuth } from './auth';
 import { renderLogin } from './panel';
 import { saveSettings, saveMihomo } from './state';
 import { rebuildSingCaches, validateGroupRules } from './sing-box';
@@ -12,6 +12,8 @@ export async function handleApi(request: Request, env: Env, state: AppState): Pr
   const action = url.pathname.replace(/^\/api\/?/, '');
 
   if (action === 'login' && request.method === 'POST') {
+    if (isDefaultCredential(env)) return renderLogin('默认 admin/admin 已禁用，请到 Cloudflare 控制台或 Wrangler 设置 ADMIN_PASSWORD 后再登录');
+
     const body = await request.formData();
     if (body.get('username') === getAdminUser(env) && body.get('password') === getAdminPassword(env)) {
       const session = await createSession(env);
