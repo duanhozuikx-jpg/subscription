@@ -111,16 +111,38 @@ function applyGroupRule(groupTag: string, currentTags: string[], rules: SingGrou
   const rule = rules.find((item) => item.tag === groupTag);
   if (!rule) return currentTags;
 
-  const nodeTagSet = new Set(nodes.map((node) => node.tag));
-  const baseTags = rule.includeAll ? nodes.map((node) => node.tag) : currentTags;
-  const filteredTags = baseTags.filter((tag) => {
-    if (regionTags.includes(tag)) return !!rule.includeRegions;
-    const node = nodeTagSet.has(tag) ? nodes.find((item) => item.tag === tag) : null;
-    return node ? matchNode(node, rule) : true;
-  });
-
+  const filteredTags = rule.includeAll ? nodes.filter((node) => matchNode(node, rule)).map((node) => node.tag) : [];
   if (rule.includeRegions) filteredTags.push(...regionTags);
+  filteredTags.push(...(rule.includeGroups || []));
   return unique(filteredTags);
+}
+
+export function validateGroupRules(rules: SingGroupRule[]): string | null {
+  const graph = new Map<string, string[]>();
+  for (const rule of rules) graph.set(rule.tag, rule.includeGroups || []);
+
+  const visiting = new Set<string>();
+  const visited = new Set<string>();
+
+  function visit(tag: string, path: string[]): string | null {
+    if (visiting.has(tag)) return [...path, tag].join(' -> ');
+    if (visited.has(tag)) return null;
+    visiting.add(tag);
+    for (const next of graph.get(tag) || []) {
+      if (!graph.has(next)) continue;
+      const cycle = visit(next, [...path, tag]);
+      if (cycle) return cycle;
+    }
+    visiting.delete(tag);
+    visited.add(tag);
+    return null;
+  }
+
+  for (const tag of graph.keys()) {
+    const cycle = visit(tag, []);
+    if (cycle) return cycle;
+  }
+  return null;
 }
 
 function matchNode(node: any, rule: SingGroupRule): boolean {

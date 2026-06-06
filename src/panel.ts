@@ -237,6 +237,8 @@ function renderGroupRules(state: AppState): string {
     const rule = state.singGroupRules.find((item) => item.tag === group.tag) || { tag: group.tag };
     const includeRegions = rule.includeRegions ?? group.hasRegionPlaceholder;
     const excludeTypes = new Set(rule.excludeTypes || []);
+    const includeGroups = new Set(rule.includeGroups || group.groupRefs);
+    const selectableGroups = groups.filter((item) => item.tag !== group.tag);
     return `
       <div class="group-rule" data-tag="${escapeHtml(group.tag)}">
         <div class="group-head">
@@ -249,6 +251,9 @@ function renderGroupRules(state: AppState): string {
         </div>
         <div class="group-controls">
           <label>排除名字关键字/正则<input name="excludeName" value="${escapeHtml(rule.excludeName || '')}" placeholder="例如 CF|中国|HY"></label>
+          <label>包含其他分组<select name="includeGroups" multiple size="6">
+            ${selectableGroups.map((item) => `<option value="${escapeHtml(item.tag)}" ${includeGroups.has(item.tag) ? 'selected' : ''}>${escapeHtml(item.tag)}</option>`).join('')}
+          </select></label>
           <fieldset>
             <legend>排除协议</legend>
             ${PROXY_TYPES.map((type) => `<label class="check"><input type="checkbox" name="excludeTypes" value="${type}" ${excludeTypes.has(type) ? 'checked' : ''}>${type}</label>`).join('')}
@@ -260,8 +265,9 @@ function renderGroupRules(state: AppState): string {
 
 const PROXY_TYPES = ['vmess', 'vless', 'trojan', 'anytls', 'hysteria', 'hysteria2', 'tuic'];
 
-function extractTemplateGroups(state: AppState): Array<{ tag: string; type: string; outbounds: string[]; hasRegionPlaceholder: boolean }> {
+function extractTemplateGroups(state: AppState): Array<{ tag: string; type: string; outbounds: string[]; hasRegionPlaceholder: boolean; groupRefs: string[] }> {
   const outbounds = Array.isArray(state.singTemplate?.outbounds) ? state.singTemplate.outbounds : [];
+  const groupTags = new Set(outbounds.filter((outbound) => outbound?.tag && !isInternalGroup(outbound.tag) && isConfigurableGroup(outbound)).map((outbound) => outbound.tag));
   return outbounds
     .filter((outbound) => outbound?.tag && !isInternalGroup(outbound.tag) && isConfigurableGroup(outbound) && Array.isArray(outbound.outbounds))
     .map((outbound) => ({
@@ -269,6 +275,7 @@ function extractTemplateGroups(state: AppState): Array<{ tag: string; type: stri
       type: outbound.type,
       outbounds: outbound.outbounds,
       hasRegionPlaceholder: outbound.outbounds.some((tag: string) => isRegionTag(tag)),
+      groupRefs: outbound.outbounds.filter((tag: string) => groupTags.has(tag)),
     }));
 }
 
@@ -323,13 +330,13 @@ function styles(): string {
     .group-rules { gap: 14px; }
     .group-rule { display: grid; gap: 12px; border: 1px solid #252b33; border-radius: 8px; padding: 12px; background: #12161b; }
     .group-head { display: grid; grid-template-columns: minmax(200px, 1fr) auto auto; gap: 12px; align-items: center; }
-    .group-controls { display: grid; grid-template-columns: minmax(220px, 320px) minmax(0, 1fr); gap: 12px; align-items: start; }
+    .group-controls { display: grid; grid-template-columns: minmax(220px, 320px) minmax(220px, 320px) minmax(0, 1fr); gap: 12px; align-items: start; }
     fieldset { border: 1px solid #30363d; border-radius: 6px; padding: 8px 10px; display: flex; flex-wrap: wrap; gap: 8px 12px; margin: 0; }
     legend { color: #aeb6bf; padding: 0 4px; font-size: 13px; }
     .check { display: inline-flex; grid-auto-flow: column; align-items: center; gap: 6px; color: #c9d7e8; white-space: nowrap; }
     .check input { width: auto; margin: 0; }
     label { display: grid; gap: 6px; font-size: 13px; color: #aeb6bf; }
-    input, textarea { box-sizing: border-box; width: 100%; border: 1px solid #3b4652; border-radius: 6px; padding: 9px 10px; font: inherit; color: #edf0f2; background: #0f1216; }
+    input, textarea, select { box-sizing: border-box; width: 100%; border: 1px solid #3b4652; border-radius: 6px; padding: 9px 10px; font: inherit; color: #edf0f2; background: #0f1216; }
     input::placeholder { color: #6f7a86; }
     textarea { resize: vertical; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; line-height: 1.45; }
     button { border: 1px solid #4c8dff; background: #2f6fed; color: #fff; border-radius: 6px; padding: 9px 12px; font: inherit; cursor: pointer; white-space: nowrap; }
@@ -362,6 +369,13 @@ function panelScript(): string {
         const submitter = event.submitter;
         const api = submitter?.getAttribute('formaction')?.replace('/api/', '') || form.dataset.api;
         const body = api === 'sing/group-rules' ? readGroupRules(form) : Object.fromEntries(new FormData(form).entries());
+        if (api === 'sing/group-rules') {
+          const cycle = findGroupCycle(body.rules);
+          if (cycle) {
+            show('分组循环: ' + cycle);
+            return;
+          }
+        }
         if (submitter?.dataset.delete) body.id = submitter.dataset.delete;
         if (submitter?.name) body[submitter.name] = submitter.value;
         const res = await fetch('/api/' + api, {
@@ -384,10 +398,34 @@ function panelScript(): string {
         tag: card.dataset.tag,
         includeAll: card.querySelector('input[name="includeAll"]').checked,
         includeRegions: card.querySelector('input[name="includeRegions"]').checked,
+        includeGroups: Array.from(card.querySelector('select[name="includeGroups"]').selectedOptions).map((option) => option.value),
         excludeName: card.querySelector('input[name="excludeName"]').value.trim(),
         excludeTypes: Array.from(card.querySelectorAll('input[name="excludeTypes"]:checked')).map((input) => input.value),
       }));
       return { rules };
+    }
+    function findGroupCycle(rules) {
+      const graph = new Map(rules.map((rule) => [rule.tag, rule.includeGroups || []]));
+      const visiting = new Set();
+      const visited = new Set();
+      function visit(tag, path) {
+        if (visiting.has(tag)) return path.concat(tag).join(' -> ');
+        if (visited.has(tag)) return null;
+        visiting.add(tag);
+        for (const next of graph.get(tag) || []) {
+          if (!graph.has(next)) continue;
+          const cycle = visit(next, path.concat(tag));
+          if (cycle) return cycle;
+        }
+        visiting.delete(tag);
+        visited.add(tag);
+        return null;
+      }
+      for (const tag of graph.keys()) {
+        const cycle = visit(tag, []);
+        if (cycle) return cycle;
+      }
+      return null;
     }
     document.querySelectorAll('[data-copy]').forEach((button) => {
       button.addEventListener('click', async () => {

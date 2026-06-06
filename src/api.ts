@@ -2,7 +2,7 @@ import { SESSION_TTL_SECONDS } from './defaults';
 import { createSession, getAdminPassword, getAdminUser, requireAuth } from './auth';
 import { renderLogin } from './panel';
 import { saveSettings, saveMihomo } from './state';
-import { rebuildSingCaches } from './sing-box';
+import { rebuildSingCaches, validateGroupRules } from './sing-box';
 import { addMihomoSubscription, addSingBoxSubscription, importMihomoProxies } from './subscriptions';
 import type { AppState, Env } from './types';
 import { fetchText, jsonResponse, normalizePath, parseConfigText, parseJsonObject } from './utils';
@@ -101,6 +101,8 @@ export async function handleApi(request: Request, env: Env, state: AppState): Pr
   if (action === 'sing/group-rules') {
     const parsed = typeof body.rules === 'string' ? parseConfigText(body.rules) : body.rules;
     state.singGroupRules = Array.isArray(parsed) ? parsed : parsed?.rules || [];
+    const cycle = validateGroupRules(state.singGroupRules);
+    if (cycle) return jsonResponse({ error: `Group cycle detected: ${cycle}` }, 400);
     await rebuildSingCaches(env, state);
     return jsonResponse({ ok: true, updatedAt: state.singCache.updatedAt });
   }

@@ -34,6 +34,7 @@ export interface SingGroupRule {
   tag: string;
   includeAll?: boolean;
   includeRegions?: boolean;
+  includeGroups?: string[];
   excludeName?: string;
   excludeTypes?: string[];
 }
