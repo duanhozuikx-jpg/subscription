@@ -198,24 +198,6 @@
     },
     {
       "type": "urltest",
-      "tag": "🇺🇸US",
-      "outbounds": [
-        "direct"
-      ],
-      "url": "https://cp.cloudflare.com",
-      "interval": "5m"
-    },
-    {
-      "type": "urltest",
-      "tag": "🇭🇰HK",
-      "outbounds": [
-        "direct"
-      ],
-      "url": "https://cp.cloudflare.com",
-      "interval": "5m"
-    },
-    {
-      "type": "urltest",
       "tag": "🔥AUTO",
       "outbounds": [
         "direct"

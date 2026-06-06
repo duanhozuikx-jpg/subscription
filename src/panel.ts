@@ -238,7 +238,13 @@ function renderGroupRules(state: AppState): string {
     const includeRegions = rule.includeRegions ?? group.hasRegionPlaceholder;
     const excludeTypes = new Set(rule.excludeTypes || []);
     const includeGroups = new Set(rule.includeGroups || group.groupRefs);
-    const selectableGroups = groups.filter((item) => item.tag !== group.tag);
+    const selectableItems = [
+      { tag: '🔥AUTO', label: '🔥AUTO' },
+      { tag: 'direct', label: 'direct' },
+      ...groups.filter((item) => item.tag !== group.tag).map((item) => ({ tag: item.tag, label: item.tag })),
+    ];
+    const includedItems = selectableItems.filter((item) => includeGroups.has(item.tag));
+    const availableItems = selectableItems.filter((item) => !includeGroups.has(item.tag));
     return `
       <div class="group-rule" data-tag="${escapeHtml(group.tag)}">
         <div class="group-head">
@@ -251,9 +257,16 @@ function renderGroupRules(state: AppState): string {
         </div>
         <div class="group-controls">
           <label>排除名字关键字/正则<input name="excludeName" value="${escapeHtml(rule.excludeName || '')}" placeholder="例如 CF|中国|HY"></label>
-          <label>包含其他分组<select name="includeGroups" multiple size="6">
-            ${selectableGroups.map((item) => `<option value="${escapeHtml(item.tag)}" ${includeGroups.has(item.tag) ? 'selected' : ''}>${escapeHtml(item.tag)}</option>`).join('')}
-          </select></label>
+          <div class="dual-list">
+            <div>
+              <span>未包含</span>
+              <ul data-list="available">${availableItems.map((item) => `<li data-value="${escapeHtml(item.tag)}">${escapeHtml(item.label)}</li>`).join('')}</ul>
+            </div>
+            <div>
+              <span>已包含</span>
+              <ul data-list="included">${includedItems.map((item) => `<li data-value="${escapeHtml(item.tag)}">${escapeHtml(item.label)}</li>`).join('')}</ul>
+            </div>
+          </div>
           <fieldset>
             <legend>排除协议</legend>
             ${PROXY_TYPES.map((type) => `<label class="check"><input type="checkbox" name="excludeTypes" value="${type}" ${excludeTypes.has(type) ? 'checked' : ''}>${type}</label>`).join('')}
@@ -275,7 +288,7 @@ function extractTemplateGroups(state: AppState): Array<{ tag: string; type: stri
       type: outbound.type,
       outbounds: outbound.outbounds,
       hasRegionPlaceholder: outbound.outbounds.some((tag: string) => isRegionTag(tag)),
-      groupRefs: outbound.outbounds.filter((tag: string) => groupTags.has(tag)),
+      groupRefs: outbound.outbounds.filter((tag: string) => groupTags.has(tag) || tag === 'direct' || tag === '🔥AUTO'),
     }));
 }
 
@@ -330,7 +343,13 @@ function styles(): string {
     .group-rules { gap: 14px; }
     .group-rule { display: grid; gap: 12px; border: 1px solid #252b33; border-radius: 8px; padding: 12px; background: #12161b; }
     .group-head { display: grid; grid-template-columns: minmax(200px, 1fr) auto auto; gap: 12px; align-items: center; }
-    .group-controls { display: grid; grid-template-columns: minmax(220px, 320px) minmax(220px, 320px) minmax(0, 1fr); gap: 12px; align-items: start; }
+    .group-controls { display: grid; grid-template-columns: minmax(220px, 300px) minmax(340px, 1fr) minmax(0, 1fr); gap: 12px; align-items: start; }
+    .dual-list { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .dual-list span { display: block; margin-bottom: 6px; color: #aeb6bf; font-size: 13px; }
+    .dual-list ul { min-height: 164px; max-height: 220px; overflow: auto; margin: 0; padding: 8px; list-style: none; border: 1px solid #30363d; border-radius: 6px; background: #0f1216; }
+    .dual-list li { padding: 7px 8px; border-radius: 5px; color: #edf0f2; cursor: pointer; user-select: none; }
+    .dual-list li + li { margin-top: 4px; }
+    .dual-list li:hover { background: #20252b; }
     fieldset { border: 1px solid #30363d; border-radius: 6px; padding: 8px 10px; display: flex; flex-wrap: wrap; gap: 8px 12px; margin: 0; }
     legend { color: #aeb6bf; padding: 0 4px; font-size: 13px; }
     .check { display: inline-flex; grid-auto-flow: column; align-items: center; gap: 6px; color: #c9d7e8; white-space: nowrap; }
@@ -398,7 +417,7 @@ function panelScript(): string {
         tag: card.dataset.tag,
         includeAll: card.querySelector('input[name="includeAll"]').checked,
         includeRegions: card.querySelector('input[name="includeRegions"]').checked,
-        includeGroups: Array.from(card.querySelector('select[name="includeGroups"]').selectedOptions).map((option) => option.value),
+        includeGroups: Array.from(card.querySelectorAll('[data-list="included"] li')).map((item) => item.dataset.value),
         excludeName: card.querySelector('input[name="excludeName"]').value.trim(),
         excludeTypes: Array.from(card.querySelectorAll('input[name="excludeTypes"]:checked')).map((input) => input.value),
       }));
@@ -432,6 +451,14 @@ function panelScript(): string {
         const value = new URL(button.dataset.copy, location.href).toString();
         await navigator.clipboard.writeText(value);
         show('已复制');
+      });
+    });
+    document.querySelectorAll('.dual-list li').forEach((item) => {
+      item.addEventListener('dblclick', () => {
+        const current = item.closest('ul');
+        const pair = item.closest('.dual-list');
+        const targetName = current.dataset.list === 'available' ? 'included' : 'available';
+        pair.querySelector('[data-list="' + targetName + '"]').appendChild(item);
       });
     });
   `;
