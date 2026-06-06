@@ -2,9 +2,16 @@
 
 Cloudflare Worker 订阅管理面板，用一个 KV 存储 sing-box 与 mihomo 的模板、订阅集、合并结果和面板配置。
 
+## 部署
+
+- fork本项目
+- Cloudflare控制台,存储呼与数据库/Workers KV 创建KV命名空间 
+- 修改wrangler.toml中 kv_namespaces/id 为 KV/id 
+- 创建Workers应用程序,连接你的仓库即可
+
 ## 重要安全事项
 
-部署后第一件事：
+部署完成后：
 
 1. 立即设置面板用户名和密码。
 2. 登录面板后进入 `配置` 页面，修改面板路径、订阅路径、外部 API 路径和 API Token。
