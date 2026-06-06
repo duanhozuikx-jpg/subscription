@@ -263,7 +263,7 @@ const PROXY_TYPES = ['vmess', 'vless', 'trojan', 'anytls', 'hysteria', 'hysteria
 function extractTemplateGroups(state: AppState): Array<{ tag: string; type: string; outbounds: string[]; hasRegionPlaceholder: boolean }> {
   const outbounds = Array.isArray(state.singTemplate?.outbounds) ? state.singTemplate.outbounds : [];
   return outbounds
-    .filter((outbound) => outbound?.tag && isConfigurableGroup(outbound) && Array.isArray(outbound.outbounds))
+    .filter((outbound) => outbound?.tag && !isInternalGroup(outbound.tag) && isConfigurableGroup(outbound) && Array.isArray(outbound.outbounds))
     .map((outbound) => ({
       tag: outbound.tag,
       type: outbound.type,
@@ -274,6 +274,10 @@ function extractTemplateGroups(state: AppState): Array<{ tag: string; type: stri
 
 function isConfigurableGroup(outbound: any): boolean {
   return ['selector', 'urltest', 'url-test', 'fallback', 'loadbalance'].includes(outbound?.type);
+}
+
+function isInternalGroup(tag: string): boolean {
+  return tag === '🔥AUTO' || isRegionTag(tag);
 }
 
 function isRegionTag(tag: string): boolean {
