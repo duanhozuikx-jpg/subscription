@@ -1,13 +1,20 @@
 {
-  "name": "subscription",
-  "version": "1.0.0",
-  "main": "src/index.ts",
-  "devDependencies": {
-    "@cloudflare/workers-types": "^4.20240405.0",
-    "typescript": "^5.4.5",
-    "wrangler": "^3.48.0"
+  "name": "subscription-manager-worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "js-yaml": "^4.1.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260606.0",
+    "@types/js-yaml": "^4.0.9",
+    "typescript": "^5.8.3",
+    "wrangler": "^4.20.0"
   }
 }

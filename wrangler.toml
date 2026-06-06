@@ -1,18 +1,16 @@
-name = "subscription"
-main = "src/index.ts"
-compatibility_date = "2024-04-03"
+name = "subscription-manager-worker"
+main = "index.ts"
+compatibility_date = "2026-06-06"
 
-# [vars]
-# Environment variables (configure in Cloudflare console):
-# Template_link = "https://example.com/config.yaml"
-# SUB_PATH = "/sub"
-# ALLOW_URL = ["https://example.com/**", "https://trusted-domain.com/*"]
-#   - JSON array format with wildcard support
-#   - * matches any characters except /
-#   - ** matches any characters including /
-#   - Leave empty or omit to allow all URLs
+[[kv_namespaces]]
+binding = "CONFIG_KV"
+id = "51d5bd9fd8b54b958ec723defdac25b1"
 
-# [[kv_namespaces]]
-# Key-Value storage namespace (configure in Cloudflare console):
-# binding = "CONFIG_KV"
-# id = "your-kv-namespace-id"
+[vars]
+ADMIN_USER = "admin"
+# Set ADMIN_PASSWORD with `wrangler secret put ADMIN_PASSWORD`.
+
+[[rules]]
+type = "Text"
+globs = ["**/*.yaml", "**/*.yml"]
+fallthrough = true

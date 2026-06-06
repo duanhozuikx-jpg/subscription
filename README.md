@@ -1,107 +1,177 @@
-# Subscription Manager
+# Subscription Manager Worker
 
-这是一个基于 Cloudflare Workers 的配置管理工具，用于动态维护和生成代理工具（如 Clash）的 YAML 配置文件。
+Cloudflare Worker 订阅管理面板，用一个 KV 存储 sing-box 与 mihomo 的模板、订阅集、合并结果和面板配置。
 
-## 功能特性
-- 动态添加/删除订阅源。
-- 自动合并多个订阅源到模板配置。
-- **安全性与限制**:
-    - 模板大小限制（最大 10MB）。
-    - URL 白名单控制。
-    - 自动处理重定向。
+## 重要安全事项
 
-## 环境变量配置 (Cloudflare 控制台)
+部署后第一件事：
 
-在 Cloudflare Workers 的设置中，请进入 **设置 > 变量** 进行配置：
+1. 立即设置面板用户名和密码。
+2. 登录面板后进入 `配置` 页面，修改面板路径、订阅路径、外部 API 路径和 API Token。
+3. 不要继续使用默认用户名 `admin` 和默认密码 `admin`。
 
-| 变量名          | 类型 | 说明                                                         |
-| :-------------- | :--- | :----------------------------------------------------------- |
-| `CONFIG_KV`     | KV   | 绑定一个 KV 命名空间用于持久化存储配置数据                         |
-| `SUB_PATH`      | Text | 访问路径（如 `/secret-sub`），只有匹配该路径的请求才会被处理 |
-| `Template_link` | Text | 默认的远程 YAML 模板下载地址                                 |
-| `ALLOW_URL`     | JSON | 可选。URL 白名单模式，JSON 数组格式。例如 `["https://example.com/**"]` |
-
-## 使用参数 (Query Parameters)
-
-所有请求必须访问指定的 `SUB_PATH`，并通过 `gte` 参数指定操作。
-
-### 路径正确,但未指定任何参数时,会返回用法提示
-```
-curl https://mihomo*.org/f47b5095-*-c02ec4ac24f8                                                                                             
-{
-  "message": "Subscription Manager Usage",
-  "endpoints": {
-    "download": "/f47b5095-*-c02ec4ac24f8?gte=download",
-    "update": "/f47b5095-*-c02ec4ac24f8?gte=update[&url=TEMPLATE_URL]",
-    "add": "/f47b5095-*-c02ec4ac24f8?gte=add&name=NAME&url=PROXY_URL",
-    "del": "/f47b5095-*-c02ec4ac24f8?gte=del&name=NAME",
-    "list": "/f47b5095-*-c02ec4ac24f8?gte=list"
-  },
-  "note": "Non-matched paths return 404."
-}⏎  
-```
-
-### 1. 更新模板 (`update`)
-从远程获取基础配置并更新。
-- **示例**: `?gte=update`
-- **可选**: `&url=URL` (覆盖默认的 `Template_link`)
-- **注意**: 更新模板不会删除原有的订阅源，只更新其他规则。
-
-### 2. 下载配置 (`download`)
-获取合并后的完整 YAML 配置文件。
-- **示例**: `?gte=download`
-
-### 3. 添加/修改条目 (`add`)
-添加或更新一个代理订阅源。
-- **示例**: `?gte=add&name=ProviderA&url=HTTP_URL`
-
-### 4. 删除条目 (`del`)
-- **示例**: `?gte=del&name=ProviderA`
-
-### 5. 列出条目 (`list`)
-以 JSON 格式列出所有已添加的 Provider 名称。
-- **示例**: `?gte=list`
-
-## 更新限制与安全性
-
-### 1. 模板大小限制
-- **最大限制**: 10 MB (10,485,760 字节)。
-- **说明**: 系统会检查 HTTP 响应头的 `content-length` 以及实际下载的内容大小。
-- **错误处理**: 如果超过限制，系统将返回 `413 Payload Too Large`。
-
-### 2. URL 白名单控制 (`ALLOW_URL`)
-- **配置格式**: 包含匹配模式的 JSON 数组。
-- **通配符支持**:
-  - `*`：匹配除 `/` 之外的任何字符。
-  - `**`：匹配包括 `/` 在内的任何字符。
-- **默认行为**: 如果 `ALLOW_URL` 未设置或为空，则允许所有 URL。
-- **重定向支持**: 只要初始 URL 匹配白名单，系统会自动跟随后续的重定向。
-
-#### 配置示例：
-- **仅允许特定域名**: `["https://config.example.com/**"]`
-- **允许特定路径**: `["https://example.com/config/**"]`
-- **允许所有 HTTPS URL**: `["https://**"]`
-
-## HTTP 状态码说明
-
-| 状态码 | 说明 |
-|------|--------|
-| 200 | 操作成功 |
-| 400 | 请求参数缺失（如未提供有效的 Template link） |
-| 403 | URL 不在白名单内 |
-| 413 | 模板文件大小超过 10 MB 限制 |
-| 500 | 服务器内部错误（如解析失败等） |
-
-## 使用示例
-
-### 白名单限制示例
-假设 `ALLOW_URL` 被设置为 `["https://trusted.com/**"]`：
+使用 Wrangler 设置密码：
 
 ```bash
-# ✅ 允许 - 匹配白名单模式
-curl "https://api.example.com/sub?gte=update&url=https://trusted.com/config.yaml"
-
-# ❌ 拒绝 - 不在白名单中
-curl "https://api.example.com/sub?gte=update&url=https://untrusted.com/config.yaml"
-# 响应: 403 URL not allowed
+npx wrangler secret put ADMIN_PASSWORD
 ```
+或者在 Workers项目控制台,设置中添加环境变量 `ADMIN_PASSWORD`
+用户名可在 `wrangler.toml` 的 `ADMIN_USER` 修改，或在 Worker 环境变量里设置。
+
+## 默认模板
+
+内置两个模板：
+
+- `template/template.json`：sing-box 默认模板
+- `template/template.yaml`：mihomo 默认模板
+
+首次使用时会从这两个模板初始化。mihomo 模板中的 `proxy-providers` 会被抽离为面板可管理的订阅集；下载 mihomo 配置时再写回 `proxy-providers`。
+
+## 下载逻辑与 UA 自动识别
+
+默认订阅路径是 `/sub`，可在 `配置` 页面修改。
+
+同一个订阅地址会根据 User-Agent 自动返回不同格式：
+
+- mihomo / Clash 类 UA：返回 YAML
+- SFA / Android / sing-box Android 类 UA：返回 Android sing-box JSON
+- 其他 UA：返回普通 sing-box JSON
+
+也可以用参数强制指定：
+
+```text
+/sub?target=mihomo
+/sub?target=sing-box
+/sub?target=sing-box-android
+```
+
+面板顶部的 `auto`、`sing-box`、`mihomo` 按钮只复制链接，不直接下载。
+
+## sing-box 合并逻辑
+
+sing-box 不直接使用订阅集格式。Worker 会在添加或更新 sing-box 订阅集时拉取远程配置，将其中的节点提取出来，与 sing-box 模板合并，并把完整结果缓存到 KV。
+
+下载时不会每次重新合并，而是直接返回已缓存的完整配置。
+
+合并时会：
+
+- 提取各订阅集中的节点出站。
+- 根据节点名称识别国家/地区，动态生成地区分组。
+- 将地区分组插入模板中已有的分组。
+- 根据 Android / 其他平台覆写生成两份 sing-box 配置。
+
+高级页 `覆写与分组` 可以配置：
+
+- Android / 其他平台覆写
+- 每个模板分组是否包含所有节点
+- 是否包含国家分组
+- 排除指定协议
+- 按名称关键字或正则排除节点
+
+覆写规则中对象会递归合并，数组会整体替换。
+
+## mihomo 逻辑
+
+mihomo 只管理 `proxy-providers` 订阅集，不会自动修改模板里的 `proxy-groups` 分组策略。
+
+添加 mihomo 订阅集后会：
+
+1. 写入 mihomo 的 `proxy-providers`。
+2. 拉取该 YAML。
+3. 提取其中的 `proxies`。
+4. 尝试翻译为 sing-box 节点。
+5. 同步保存为一个 sing-box 订阅集。
+
+也就是说，mihomo 侧如果希望这些 provider 被具体分组使用，需要手动修改 mihomo 模板里的 `proxy-groups`,默认模板大多数分组已设置 `include-all: true`  。
+
+当前 mihomo 到 sing-box 翻译器支持基础协议：
+
+- VMess
+- VLESS
+- Trojan
+- anytls
+- Hysteria / Hysteria2
+- TUIC
+
+不支持的协议会跳过；如果没有任何可支持节点，会返回错误。
+
+## 外部 API
+主要用途是在脚本配置完节点后自动合并订阅,无需再手动通过面板添加
+
+外部 API 路径和 Token 在 `配置` 页面设置。默认路径是：
+
+```text
+/external-api
+```
+
+如果未设置 API Token，外部 API 默认禁用。
+
+认证方式支持：
+
+```http
+Authorization: Bearer <token>
+X-API-Token: <token>
+```
+
+也支持 `?token=<token>`。
+
+### 添加 mihomo 订阅集
+
+默认 `type` 是 `mihomo`。添加后会同时写入 mihomo provider，并翻译保存到 sing-box 订阅集中。
+
+```bash
+curl -X POST "https://example.com/external-api" \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"provider-name","url":"https://example.com/provider.yaml"}'
+```
+
+等价显式写法：
+
+```json
+{
+  "type": "mihomo",
+  "name": "provider-name",
+  "url": "https://example.com/provider.yaml"
+}
+```
+
+### 单独添加 sing-box 订阅集
+
+```json
+{
+  "type": "sing-box",
+  "name": "sing-name",
+  "url": "https://example.com/sing-box.json"
+}
+```
+
+## 部署
+
+安装依赖：
+
+```bash
+npm install
+```
+
+创建 KV namespace 后修改 `wrangler.toml`：
+
+```toml
+[[kv_namespaces]]
+binding = "CONFIG_KV"
+id = "replace-with-kv-namespace-id"
+```
+
+设置密码：
+
+```bash
+npx wrangler secret put ADMIN_PASSWORD
+```
+
+部署：
+
+```bash
+npm run deploy
+```
+
+部署完成后立即登录面板，进入 `配置` 页面修改路径和 API Token。
