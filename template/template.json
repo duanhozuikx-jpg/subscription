@@ -84,26 +84,21 @@
       "type": "selector",
       "tag": "🌀Google",
       "outbounds": [
-        "🗽SELECT",
-        "🇺🇸US",
-        "🇭🇰HK"
+        "🗽SELECT"
       ]
     },
     {
       "type": "selector",
       "tag": "⌨️ AI",
       "outbounds": [
-        "🗽SELECT",
-        "🇺🇸US"
+        "🗽SELECT"
       ]
     },
     {
       "type": "selector",
       "tag": "📺 Media",
       "outbounds": [
-        "🗽SELECT",
-        "🇺🇸US",
-        "🇭🇰HK"
+        "🗽SELECT"
       ]
     },
     {
@@ -164,8 +159,7 @@
       "type": "selector",
       "tag": "🎵Spotify",
       "outbounds": [
-        "🇺🇸US",
-        "🇭🇰HK",
+        "🗽SELECT",
         "direct"
       ]
     },
@@ -174,8 +168,7 @@
       "tag": "🎮Games",
       "outbounds": [
         "🗽SELECT",
-        "direct",
-        "🇭🇰HK"
+        "direct"
       ]
     },
     {
