@@ -1,4 +1,4 @@
-# Subscription Manager Worker
+# subscription
 
 Cloudflare Worker 订阅管理面板，用一个 KV 存储 sing-box 与 mihomo 的模板、订阅集、合并结果和面板配置。
 
