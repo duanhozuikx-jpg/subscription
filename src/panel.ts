@@ -239,6 +239,7 @@ function renderGroupRules(state: AppState): string {
     const excludeTypes = new Set(rule.excludeTypes || []);
     const includeGroups = new Set(rule.includeGroups || group.groupRefs);
     const selectableItems = [
+      ...(group.tag === '🏴‍☠️全球拦截' ? [{ tag: 'block', label: 'block' }] : []),
       { tag: '🔥AUTO', label: '🔥AUTO' },
       { tag: 'direct', label: 'direct' },
       ...groups.filter((item) => item.tag !== group.tag).map((item) => ({ tag: item.tag, label: item.tag })),
@@ -288,7 +289,7 @@ function extractTemplateGroups(state: AppState): Array<{ tag: string; type: stri
       type: outbound.type,
       outbounds: outbound.outbounds,
       hasRegionPlaceholder: outbound.outbounds.some((tag: string) => isRegionTag(tag)),
-      groupRefs: outbound.outbounds.filter((tag: string) => groupTags.has(tag) || tag === 'direct' || tag === '🔥AUTO'),
+      groupRefs: outbound.outbounds.filter((tag: string) => groupTags.has(tag) || tag === 'direct' || tag === '🔥AUTO' || (outbound.tag === '🏴‍☠️全球拦截' && tag === 'block')),
     }));
 }
 

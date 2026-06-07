@@ -111,9 +111,9 @@ function applyGroupRule(groupTag: string, currentTags: string[], rules: SingGrou
   const rule = rules.find((item) => item.tag === groupTag);
   if (!rule) return currentTags;
 
-  const filteredTags = rule.includeAll ? nodes.filter((node) => matchNode(node, rule)).map((node) => node.tag) : [];
+  const filteredTags = [...(rule.includeGroups || [])];
   if (rule.includeRegions) filteredTags.push(...regionTags);
-  filteredTags.push(...(rule.includeGroups || []));
+  if (rule.includeAll) filteredTags.push(...nodes.filter((node) => matchNode(node, rule)).map((node) => node.tag));
   return unique(filteredTags);
 }
 

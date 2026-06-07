@@ -3,7 +3,7 @@ import { createSession, getAdminPassword, getAdminUser, isDefaultCredential, req
 import { renderLogin } from './panel';
 import { saveSettings, saveMihomo } from './state';
 import { rebuildSingCaches, validateGroupRules } from './sing-box';
-import { addMihomoSubscription, addSingBoxSubscription, importMihomoProxies } from './subscriptions';
+import { addMihomoSubscription, addSingBoxSubscription, importMihomoProxies, updateSingBoxSubscription } from './subscriptions';
 import type { AppState, Env } from './types';
 import { fetchText, jsonResponse, normalizePath, parseConfigText, parseJsonObject } from './utils';
 
@@ -66,14 +66,8 @@ export async function handleApi(request: Request, env: Env, state: AppState): Pr
   if (action === 'sing/sub/update') {
     const ids = body.id ? [String(body.id)] : state.singSubs.map((sub) => sub.id);
     for (const id of ids) {
-      const item = state.singSubs.find((sub) => sub.id === id);
-      if (!item) continue;
-      const config = parseJsonObject(await fetchText(item.url, env));
-      item.updatedAt = new Date().toISOString();
-      item.size = JSON.stringify(config).length;
-      state.singSubConfigs[id] = config;
+      await updateSingBoxSubscription(env, state, id);
     }
-    await rebuildSingCaches(env, state);
     return jsonResponse({ ok: true, updatedAt: state.singCache.updatedAt });
   }
 
