@@ -237,14 +237,16 @@ function renderGroupRules(state: AppState): string {
     const rule = state.singGroupRules.find((item) => item.tag === group.tag) || { tag: group.tag };
     const includeRegions = rule.includeRegions ?? group.hasRegionPlaceholder;
     const excludeTypes = new Set(rule.excludeTypes || []);
-    const includeGroups = new Set(rule.includeGroups || group.groupRefs);
+    const includeGroupOrder = rule.includeGroups || group.groupRefs;
+    const includeGroups = new Set(includeGroupOrder);
     const selectableItems = [
       ...(group.tag === '🏴‍☠️全球拦截' ? [{ tag: 'block', label: 'block' }] : []),
       { tag: '🔥AUTO', label: '🔥AUTO' },
       { tag: 'direct', label: 'direct' },
       ...groups.filter((item) => item.tag !== group.tag).map((item) => ({ tag: item.tag, label: item.tag })),
     ];
-    const includedItems = selectableItems.filter((item) => includeGroups.has(item.tag));
+    const itemByTag = new Map(selectableItems.map((item) => [item.tag, item]));
+    const includedItems = includeGroupOrder.map((tag) => itemByTag.get(tag)).filter(Boolean) as Array<{ tag: string; label: string }>;
     const availableItems = selectableItems.filter((item) => !includeGroups.has(item.tag));
     return `
       <div class="group-rule" data-tag="${escapeHtml(group.tag)}">
