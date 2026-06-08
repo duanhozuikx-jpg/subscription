@@ -76,12 +76,6 @@ proxy-groups:
       - 🔥AUTO
       - fallback
       - DIRECT
-  - name: 🛹OTHER
-    type: select
-    include-all: true
-    proxies:
-      - 🗽SELECT
-      - DIRECT
   - name: 🌀Google
     type: select
     include-all: true
@@ -476,5 +470,5 @@ rules:
   - GEOSITE,gfw,🗽SELECT
   - GEOSITE,cn,➡️全球直连
   - GEOIP,CN,➡️全球直连
-  - MATCH,🛹OTHER
+  - MATCH,🗽SELECT
 

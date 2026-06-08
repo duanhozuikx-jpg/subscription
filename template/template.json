@@ -74,14 +74,6 @@
     },
     {
       "type": "selector",
-      "tag": "🛹OTHER",
-      "outbounds": [
-        "🗽SELECT",
-        "direct"
-      ]
-    },
-    {
-      "type": "selector",
       "tag": "🌀Google",
       "outbounds": [
         "🗽SELECT"
@@ -990,7 +982,7 @@
         "outbound": "➡️全球直连"
       }
     ],
-    "final": "🛹OTHER",
+    "final": "🗽SELECT",
     "auto_detect_interface": true,
     "default_domain_resolver": "dns_local"
   }
