@@ -30,8 +30,6 @@ export async function addMihomoSubscription(env: Env, state: AppState, input: { 
 }
 
 export async function addMihomoDirectSubscription(env: Env, state: AppState, input: { name: string; url: string; id?: string; healthCheck?: string; interval?: number }): Promise<any> {
-  const source = await fetchText(input.url, env);
-
   state.mihomoProviders[input.name] = {
     type: 'http',
     interval: Number(input.interval || 3600),
@@ -40,7 +38,7 @@ export async function addMihomoDirectSubscription(env: Env, state: AppState, inp
   };
   await saveMihomo(env, state);
 
-  const item = upsertSingBoxConfig(state, input.name, input.url, { raw: source }, input.id, 'mihomo-raw');
+  const item = upsertSingBoxConfig(state, input.name, input.url, {}, input.id, 'mihomo-raw');
   return { item, updatedAt: item.updatedAt };
 }
 
