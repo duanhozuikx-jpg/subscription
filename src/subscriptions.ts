@@ -29,6 +29,21 @@ export async function addMihomoSubscription(env: Env, state: AppState, input: { 
   return { item, imported: outbounds.length, updatedAt: state.singCache.updatedAt };
 }
 
+export async function addMihomoDirectSubscription(env: Env, state: AppState, input: { name: string; url: string; id?: string; healthCheck?: string; interval?: number }): Promise<any> {
+  const source = await fetchText(input.url, env);
+
+  state.mihomoProviders[input.name] = {
+    type: 'http',
+    interval: Number(input.interval || 3600),
+    url: input.url,
+    'health-check': { enable: true, url: input.healthCheck || 'https://cp.cloudflare.com' },
+  };
+  await saveMihomo(env, state);
+
+  const item = upsertSingBoxConfig(state, input.name, input.url, { raw: source }, input.id, 'mihomo-raw');
+  return { item, updatedAt: item.updatedAt };
+}
+
 export async function importMihomoProxies(env: Env, state: AppState, input: { name: string; url?: string; content?: string; id?: string }): Promise<any> {
   const source = input.url ? await fetchText(input.url, env) : input.content || '';
   if (!source.trim()) throw new Error('Missing mihomo yaml content or url');
@@ -85,7 +100,7 @@ function inferSourceType(state: AppState, item: any): 'sing-box' | 'mihomo' | 'm
   return 'sing-box';
 }
 
-function upsertSingBoxConfig(state: AppState, name: string, url: string, config: any, id?: string, sourceType: 'sing-box' | 'mihomo' | 'mihomo-inline' = 'sing-box'): any {
+function upsertSingBoxConfig(state: AppState, name: string, url: string, config: any, id?: string,   sourceType: 'sing-box' | 'mihomo' | 'mihomo-inline' | 'mihomo-raw' = 'sing-box'): any {
   const itemId = id || crypto.randomUUID();
   const item = {
     id: itemId,

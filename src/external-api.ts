@@ -1,4 +1,4 @@
-import { addMihomoSubscription, addSingBoxSubscription } from './subscriptions';
+import { addMihomoDirectSubscription, addSingBoxSubscription } from './subscriptions';
 import type { AppState, Env } from './types';
 import { jsonResponse } from './utils';
 
@@ -17,7 +17,7 @@ export async function handleExternalApi(request: Request, env: Env, state: AppSt
   }
 
   if (['mihomo', 'clash', 'clash-meta', 'yaml'].includes(type)) {
-    const result = await addMihomoSubscription(env, state, {
+    const result = await addMihomoDirectSubscription(env, state, {
       id: body.id,
       name: String(body.name),
       url: String(body.url),
