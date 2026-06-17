@@ -62,6 +62,7 @@ dns:
   proxy-server-nameserver:
     - https://dns.alidns.com/dns-query
 
+
 proxy-groups:
   - name: 🗽SELECT
     type: select
