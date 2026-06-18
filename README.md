@@ -129,7 +129,7 @@ curl -X POST "https://example.com/external-api" \
   -d '{"name":"provider-name","url":"https://example.com/provider.yaml"}'
 ```
 
-等价显式写法：
+### 单独添加 mihomo 订阅集
 
 ```json
 {
