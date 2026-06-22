@@ -118,9 +118,9 @@ X-API-Token: <token>
 
 也支持 `?token=<token>`。
 
-### 添加 mihomo 订阅集
+### 添加订阅集
 
-默认 `type` 是 `mihomo`。添加后会同时写入 mihomo provider，并翻译保存到 sing-box 订阅集中。
+默认添加 mihomo yaml订阅集,并翻译到sing-box配置文件,与在面板添加mihomo订阅集等价。
 
 ```bash
 curl -X POST "https://example.com/external-api" \
