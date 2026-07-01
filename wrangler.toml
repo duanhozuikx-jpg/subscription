@@ -4,7 +4,7 @@ compatibility_date = "2026-06-06"
 
 [[kv_namespaces]]
 binding = "CONFIG_KV"
-id = "51d5bd9fd8b54b958ec723defdac25b1"
+id = "bae78c3c784b4d74b7f7e39388b1e680"
 
 [vars]
 ADMIN_USER = "admin"
